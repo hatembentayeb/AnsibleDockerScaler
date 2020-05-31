@@ -33,6 +33,10 @@ Run the playbook: `ansible-playbook -i inventory auto_scale.yml`
 
 This playbook is used on CI/CD pipelines for microservices on a non kubernetes/swarm environment .. like dedicated servers ..etc
 
+## To Do
+
+- Enabling Loadbalacing for backend containers using an internal nginx container 
+
 ## Contribution 
 
 Hope it helps som1, don t hesitate to contribute i would be extremely grateful.
