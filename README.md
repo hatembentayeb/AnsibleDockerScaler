@@ -25,9 +25,9 @@ Requirements:
 clone the repo 
 `git clone https://github.com/hatembentayeb/AnsibleDockerScaler`
 
-Specify the scaler number on `inventory` file 
-Specify the image name 
-Run the playbook: `ansible-playbook -i inventory auto_scale.yml`
+* Specify the scaler number on `inventory` file 
+* Specify the image name 
+* Run the playbook: `ansible-playbook -i inventory auto_scale.yml`
 
 
 
