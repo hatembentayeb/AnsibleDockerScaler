@@ -1,0 +1,16 @@
+[local]
+localhost ansible_connection=local
+
+[local:vars]
+scale=5
+c_name=mongo
+h_name=mongo
+subnet=172.16.0                                           
+network_name=network
+image_name=mongo
+
+[network:children]
+local
+
+[clean:children]
+local

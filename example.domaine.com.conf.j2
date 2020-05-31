@@ -1,0 +1,74 @@
+{% if  scale > 1 %}
+upstream manager {
+
+{% for i in range(scale) -%}
+server http://{{ list_ip[ i ] |ipaddr }};
+{% endfor %}
+
+}
+
+
+
+server {
+        listen 80;
+        listen [::]:80;
+        server_name admin.domaine.com;
+        return 301 https://$host$request_uri;
+}
+
+server {
+        listen 443 ssl http2;
+        listen [::]:443 ssl http2;
+        server_name admin.domaine.com;
+
+        ssl on;
+        ssl_certificate /etc/letsencrypt/live/admin.domaine.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/admin.domaine.com/privkey.pem;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+        location / {
+                include /etc/nginx/extra.d/caching_ht.conf;
+                proxy_pass http://manager;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade; # allow websockets
+                proxy_set_header X-Forwarded-For $remote_addr; # preserve clien$
+                proxy_set_header Host $remote_addr; # preserve client IP
+        }
+}
+
+
+
+{% else %}
+
+
+
+
+
+server {
+        listen 80;
+        listen [::]:80;
+        server_name admin.domaine.com;
+        return 301 https://$host$request_uri;
+}
+
+server {
+        listen 443 ssl http2;
+        listen [::]:443 ssl http2;
+        server_name admin.domaine.com;
+
+        ssl on;
+        ssl_certificate /etc/letsencrypt/live/admin.domaine.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/admin.domaine.com/privkey.pem;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+        location / {
+                include /etc/nginx/extra.d/caching_ht.conf;
+                proxy_pass http://{{ list_ip[0]|ipaddr }};
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade; # allow websockets
+                proxy_set_header X-Forwarded-For $remote_addr; # preserve clien$
+                proxy_set_header Host $remote_addr; # preserve client IP
+        }
+}
+
+{% endif %}

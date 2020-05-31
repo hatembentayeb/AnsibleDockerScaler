@@ -1,0 +1,89 @@
+---
+
+- hosts: network
+  tasks:                                                     
+  - name: Create docker network
+    docker_network:
+      name: "{{ network_name }}"
+      ipam_config:
+        - subnet: "{{ subnet }}.0/16"
+          gateway: "{{ subnet }}.1"
+
+- hosts: local
+  gather_facts: no
+  tasks:
+
+  - name: get last scale
+    script: ./get_cont_num.sh {{ image_name }}
+    register: last_scale
+
+  - set_fact: 
+      last_scale={{ last_scale.stdout }}
+  
+  - debug: var=last_scale
+
+  - name : start container
+    docker_container:
+      name: "{{ c_name }}_{{ item }}"
+      image : "{{ image_name }}"
+      pull: yes
+      restart_policy: always
+      hostname: "{{ h_name }}_{{ item }}"
+      networks:
+        - name: "{{ network_name }}"
+          ipv4_address: "{{ subnet }}.{{ 1+item|int }}"
+      purge_networks: yes
+    with_sequence: start=1 end="{{ scale }}"
+
+    
+  - name : down-scaling uneeded containers 
+    docker_container: 
+      name: mongo_{{ item }}
+      state: absent
+    with_sequence: start="{{ last_scale|int if (last_scale|int - scale|int)|abs == 1|int  or last_scale|int == scale|int  or scale|int > last_scale|int else 1+scale|int  }}" end="{{ last_scale }}" 
+    # last_scale=4 scale=2
+    # last_scale=3 scale=3
+    # last_scale=3 scale=4 
+    # last_scale=2 scale=4
+    when: scale|int < last_scale|int
+
+
+
+  # - name : generate env variables 
+  #   shell : ./get_name_ip.sh {{ scale }} 
+  - name: generate  ip 
+    script: ./get_name_ip.sh {{ scale }}
+    register: last_scale
+    
+  - set_fact: 
+        list_ip={{ last_scale.stdout.split("\r\n")|list }}
+
+  - name : generate file 
+    template : 
+        src: example.domaine.com.conf.j2
+        dest: example.domaine.com.conf
+
+
+  # - name: Verify Nginx config
+  #   become: yes
+  #   command: nginx -t
+  #   changed_when: false
+
+  # - name: reload Nginx config
+  #   become: yes
+  #   command: nginx -s reload
+  #   changed_when: false
+
+        
+      
+- hosts : clean
+  gather_facts : no 
+
+  tasks: 
+
+  - name: Removing exited containers
+    shell: docker ps -a -q -f status=exited | xargs --no-run-if-empty docker rm --volumes
+  - name: Removing untagged images
+    shell: docker images | awk '/^<none>/ { print $3 }' | xargs --no-run-if-empty docker rmi -f
+  - name: Removing volume directories
+    shell: docker volume ls -q --filter="dangling=true" | xargs --no-run-if-empty docker volume rm
